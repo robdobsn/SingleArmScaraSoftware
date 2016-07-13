@@ -1,0 +1,1 @@
+../PyBoardTools/pyboard.py ScaraSingleArmSerialControl.py --device /dev/ttyACM0

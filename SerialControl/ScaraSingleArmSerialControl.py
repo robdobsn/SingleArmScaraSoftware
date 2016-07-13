@@ -209,7 +209,7 @@ def moveTo(x,y):
     # Check movement is required
     lowerAbsSteps = abs(lowerSteps)
     upperAbsSteps = abs(upperSteps)
-    if lowerAbsSteps < 0 or upperAbsSteps < 0:
+    if lowerAbsSteps == 0 and upperAbsSteps == 0:
         print("Neither upper or lower arms need to move to reach destination")
         return False
 

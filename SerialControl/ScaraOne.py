@@ -8,7 +8,7 @@ class ScaraOne:
         self.hardwareLibrary = hardwareLibrary
 
         # Hardware connections to stepper motor drivers
-        # The two stepper drivers are Pololu A4988 modules and each has a step and direction pin
+        # The two arm stepper drivers are Pololu A4988 modules and each has a step, direction and enable pin
         self.lowerArmStep = hardwareLibrary.Pin('Y9', hardwareLibrary.Pin.OUT_PP)
         self.lowerArmDirn = hardwareLibrary.Pin('Y10', hardwareLibrary.Pin.OUT_PP)
         self.lowerArmEnableBar = hardwareLibrary.Pin('Y3', hardwareLibrary.Pin.OUT_PP)
@@ -16,12 +16,18 @@ class ScaraOne:
         self.upperArmDirn = hardwareLibrary.Pin('Y12', hardwareLibrary.Pin.OUT_PP)
         self.upperArmEnableBar = hardwareLibrary.Pin('Y4', hardwareLibrary.Pin.OUT_PP)
 
+        # The vertical stepper drivers is also a Pololu A4988 module
+        self.verticalStep = hardwareLibrary.Pin('Y6', hardwareLibrary.Pin.OUT_PP)
+        self.verticalDirn = hardwareLibrary.Pin('Y5', hardwareLibrary.Pin.OUT_PP)
+        self.verticalEnableBar = hardwareLibrary.Pin('Y7', hardwareLibrary.Pin.OUT_PP)
+
         # Pen control is via an electromagnet - apply power (logic 1) to push pen down
         self.penMag = hardwareLibrary.Pin('Y8', hardwareLibrary.Pin.OUT_PP)
 
         # Initially disable motor drivers
         self.lowerArmEnableBar.value(1)
         self.upperArmEnableBar.value(1)
+        self.verticalEnableBar.value(1)
 
         # Enable motor drive for a period of time / Disable motor drive
         self.motorsEnabledFlag = False
@@ -50,15 +56,8 @@ class ScaraOne:
         lowerStepsPerDegree = 1/((1.8/16)*(20/62))
         print("Lower steps per degree", lowerStepsPerDegree)
 
-        # Max ranges of arms from straight forwards
-        self.upperArmMaxAngle = 90
-        self.lowerArmMaxAngle = 160
-
-        # Origin and arm lengths, L1 is the upper arm and L2 the lower arm
-        self.x0 = 0
-        self.y0 = 0
-        self.L1 = 100
-        self.L2 = 100
+        # Vertical steps per mm
+        verticalStepsPerMM = 1
 
         # Adjest lower rotation angle to compensate for mismatched gears in my build
         # Shoulder gear has 60 teeth and elbow gear has 62
@@ -83,6 +82,10 @@ class ScaraOne:
                 "stepsPerDegree": lowerStepsPerDegree,
                 "armMaxAngle": 160
                 },
+            "vertical": {
+                "stepsPerMM": verticalStepsPerMM,
+                "verticalTravelMax": 100,
+            },
             "shoulderGearMismatchFactor": shoulderGearMismatchFactor,
             "defaultMotorOnTimeMillis": defaultMotorOnTimeMillis
         }
@@ -94,13 +97,20 @@ class ScaraOne:
     def setHomeAsCurrentPos(self):
         return self.scaraRobotManager.setHomeAsCurrentPos()
 
+    def setVerticalPosHome(self):
+        return self.scaraRobotManager.setVerticalPosHome()
+
     # Move to an x,y point
     # Does not attempt to move in a completely straight line
     # But does move upper and lower arm proportionately - so if upper needs to move
     # 100 steps and lower to move 500 steps to reach destination then move the lower
     # arm 5 steps for every one step of the upper
-    def moveTo(self, x,y):
+    def moveTo(self, x, y):
         return self.scaraRobotManager.moveTo(x, y)
+
+    # Move vertically
+    def moveVertical(self, z):
+        return self.scaraRobotManager.moveVertical(z)
 
     # Perform a single step of the upper arm
     def stepUpperArm(self, dirn):
@@ -118,16 +128,26 @@ class ScaraOne:
         self.lowerArmStep.value(0)
         self.hardwareLibrary.udelay(self.betweenPulsesUsecs)
 
+    # Perform a single step of the vertical motor
+    def stepVertical(self, dirn):
+        self.verticalDirn.value(dirn)
+        self.verticalStep.value(1)
+        self.hardwareLibrary.udelay(self.pulseWidthUsecs)
+        self.verticalStep.value(0)
+        self.hardwareLibrary.udelay(self.betweenPulsesUsecs)
+
     def enableMotorDrive(self, turnMotorsOn, timeLimitForDriveMillis):
         # Check if we are turning the motors off
         if not turnMotorsOn:
             self.lowerArmEnableBar.value(1)
             self.upperArmEnableBar.value(1)
+            self.verticalEnableBar.value(1)
             self.motorsEnabledFlag = False
             return
         # Turn the motors on and remember when we did it
         self.lowerArmEnableBar.value(0)
         self.upperArmEnableBar.value(0)
+        self.verticalEnableBar.value(0)
         self.motorsEnabledForMillis = timeLimitForDriveMillis
         self.motorsEnabledLastMillis = self.hardwareLibrary.millis()
         self.motorsEnabledFlag = True

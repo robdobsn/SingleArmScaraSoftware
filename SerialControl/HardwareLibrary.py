@@ -3,7 +3,7 @@ import time
 
 class UART:
 
-    testString = "G0 0 100\x0a"
+    testString = "G0 0 100\x0aV0 100\x0aV0 0\x0a"
     testStringPos = 0
 
     def __init__(self, port, baud):

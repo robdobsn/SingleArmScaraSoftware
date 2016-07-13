@@ -13,6 +13,7 @@
 # E0 [TTTTT]          ... enable motor drive            ... TTTTT is an optional integer in milliseconds, 0 = indefinitely
 # E1                  ... disable motor drive
 # D0 TTTTT            ... set default motor on time     ... TTTTT is in milliseconds
+# V0 ZZZZZ            ... move to Z position
 
 # Handle test mode using a stub of hardware library
 TEST_MODE = False

@@ -21,6 +21,8 @@ class ScaraRobotManager:
         self.upperArmMaxAngle = self.robotConfiguration["upperArm"]["armMaxAngle"]
         self.lowerArmMaxAngle = self.robotConfiguration["lowerArm"]["armMaxAngle"]
         self.shoulderGearMismatchFactor = self.robotConfiguration["shoulderGearMismatchFactor"]
+        self.verticalStepsPerMM = self.robotConfiguration["vertical"]["stepsPerMM"]
+        self.verticalTravelMax = self.robotConfiguration["vertical"]["verticalTravelMax"]
 
         # Accumulated movement and elbow x,y position
         self.curLowerStepsFromZero = 0
@@ -28,11 +30,17 @@ class ScaraRobotManager:
         self.curElbowX = 0
         self.curElbowY = self.upperArmLen
 
+        # Z (vertical) position
+        self.curVerticalStepsFromZero = 0
+
     def setHomeAsCurrentPos(self):
         self.curLowerStepsFromZero = 0
         self.curUpperStepsFromZero = 0
         self.curElbowX = 0
         self.curElbowY = self.upperArmLen
+
+    def setVerticalPosHome(self):
+        self.curVerticalStepsFromZero = 0
 
     # Move to an x,y point
     # Does not attempt to move in a completely straight line
@@ -139,3 +147,16 @@ class ScaraRobotManager:
         self.curUpperStepsFromZero += upperSteps
         self.curLowerStepsFromZero += lowerSteps
 
+    def moveVertical(self, z):
+        print("MoveVertical z", z)
+        finalStepPos = z * self.verticalStepsPerMM
+        if finalStepPos > self.verticalTravelMax * self.verticalStepsPerMM:
+            finalStepPos = self.verticalTravelMax * self.verticalStepsPerMM
+        elif finalStepPos < 0:
+            finalStepPos = 0
+        # Calculate steps to get there
+        requiredSteps = round(finalStepPos - self.curVerticalStepsFromZero)
+        # Step in the required direction
+        for i in range(int(abs(requiredSteps))):
+            self.robotControl.stepVertical(requiredSteps > 0)
+        self.curVerticalStepsFromZero += requiredSteps

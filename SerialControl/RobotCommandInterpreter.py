@@ -1,4 +1,15 @@
-
+# Each command is on a separate line and is terminated with an LF (newline or linefeed \n) (CR \r is ignored)
+# Commands include:
+# G0 XXXXX YYYYY      ... go to X,Y position            ... XXXXX and YYYYY are floating point ascii numbers
+# S0 NNNNN            ... move upper arm NNNNN steps    ... NNNNN is an integer between -1000 and 1000
+# S1 NNNNN            ... move lower arm NNNNN steps    ... NNNNN is an integer between -1000 and 1000
+# C0                  ... calibrate, which means set the current position as the home (straight out) position
+# P0                  ... pen up
+# P1                  ... pen down
+# E0 [TTTTT]          ... enable motor drive            ... TTTTT is an optional integer in milliseconds, 0 = indefinitely
+# E1                  ... disable motor drive
+# D0 TTTTT            ... set default motor on time     ... TTTTT is in milliseconds
+# V0 ZZZZZ            ... move to Z position
 
 class RobotCommandInterpreter:
 
@@ -10,6 +21,7 @@ class RobotCommandInterpreter:
         robotConfig = robot.getRobotConfig()
         L1 = robotConfig["upperArm"]["armLen"]
         L2 = robotConfig["lowerArm"]["armLen"]
+        ZMax = robotConfig["vertical"]["verticalTravelMax"]
 
         # The absolute min and max possible values for the pen position
         # These are based on the "bounding box" biggest rectangle around all possible positions
@@ -18,6 +30,8 @@ class RobotCommandInterpreter:
         self.boundingBoxMaxXValue = L1 + L2
         self.boundingBoxMinYValue = -L2
         self.boundingBoxMaxYValue = L1 + L2
+        self.boundingBoxMinZValue = 0
+        self.boundingBoxMaxZValue = ZMax
         self.motorOnTimeMillis = robotConfig["defaultMotorOnTimeMillis"]
 
         # Build up a command string from characters passed in
@@ -28,7 +42,7 @@ class RobotCommandInterpreter:
         if ch == 0x0a:
             print("Command is:", self.serialCommandStr)
             self.interpCommand(self.serialCommandStr)
-            serialCommandStr = ""
+            self.serialCommandStr = ""
             return ""
 
         # Ignore CR
@@ -66,6 +80,19 @@ class RobotCommandInterpreter:
                 self.robot.moveTo(x,y)
             else:
                 print("Move to cmd ", cmdStr, " failed")
+
+        # V0 command - go to Z
+        elif splitStr[0] == 'V0':
+            # Goto Z command
+            z, zValidity = self.extractNum(splitStr, 1, self.boundingBoxMinZValue, self.boundingBoxMaxZValue)
+            if zValidity:
+                statusStr = "Vertical " + str(z)
+                print(statusStr)
+                self.display.showStatus(statusStr)
+                self.robot.enableMotorDrive(True, self.motorOnTimeMillis)
+                self.robot.moveVertical(z)
+            else:
+                print("MoveVertical ", cmdStr, " failed")
 
         # S0 & S1 commands - move an arm a given number of steps
         elif splitStr[0] == 'S0' or splitStr[0] == 'S1':

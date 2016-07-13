@@ -14,10 +14,16 @@
 # E1                  ... disable motor drive
 # D0 TTTTT            ... set default motor on time     ... TTTTT is in milliseconds
 
+# Handle test mode using a stub of hardware library
+TEST_MODE = False
+if TEST_MODE:
+    import HardwareLibrary
+else:
+    import pyb as HardwareLibrary
+
 # ScaraOne is the library supporting the ScaraOne Single Arm Scara robot
 from ScaraOne import ScaraOne
 from RobotCommandInterpreter import RobotCommandInterpreter
-import HardwareLibrary
 from PyBoardDisplay import PyBoardDisplay
 
 # Serial Connection - this uses pins Y1 and Y2 (Tx and Rx)

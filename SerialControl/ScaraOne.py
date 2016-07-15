@@ -2,7 +2,7 @@ from ScaraRobotManager import ScaraRobotManager
 
 class ScaraOne:
 
-    def __init__(self, hardwareLibrary):
+    def __init__(self, hardwareLibrary, robotConfig=None):
 
         # HW lib
         self.hardwareLibrary = hardwareLibrary
@@ -37,7 +37,7 @@ class ScaraOne:
         # Pulse width and time between pulses for the stepper motors
         # Setting betweenPulsesUsecs to 300 is medium speed
         # Set betweenPulsesUsecs to a lower number to increase speed of arm movement
-        self.pulseWidthUsecs = 1
+        self.pulseWidthUsecs = 5
         self.betweenPulsesUsecs = 300
 
         # Upper arm degrees per step calculation
@@ -46,28 +46,28 @@ class ScaraOne:
         # Motor shaft pulley has 20 teeth
         # Upper arm pulley has 62 teeth
         upperStepsPerDegree = 1/((1.8/16)*(20/62))
-        print("Upper steps per degree", upperStepsPerDegree)
+        # print("Upper steps per degree", upperStepsPerDegree)
 
         # Lower arm degrees per step calculation
         # Stepper motors move 1.8 degrees per full step
         # In microstepping mode so 16 microsteps per step
         # Motor shaft pulley has 20 teeth
-        # Upper arm pulley has 62 teeth
-        lowerStepsPerDegree = 1/((1.8/16)*(20/62))
-        print("Lower steps per degree", lowerStepsPerDegree)
+        # Lower arm pulley has 60 teeth
+        lowerStepsPerDegree = 1/((1.8/16)*(20/60))
+        # print("Lower steps per degree", lowerStepsPerDegree)
 
         # Vertical steps per mm
-        verticalStepsPerMM = 1
+        verticalStepsPerMM = 400
 
         # Adjest lower rotation angle to compensate for mismatched gears in my build
-        # Shoulder gear has 60 teeth and elbow gear has 62
+        # Shoulder gear has 62 teeth and elbow gear has 60
         # The result of this is that a 90 degree rotation of the upper arm
         # results in a ((90 * 62/60) - 90) = 1/30 degree turn of the lower arm
         # So we need to correct lower angle by 1/30th of upper angle
         shoulderGearMismatchFactor = 1 / 30
 
         # Leave motor drivers on for this amount of time after last move
-        defaultMotorOnTimeMillis = 60000
+        defaultMotorOnTimeMillis = 1000
 
         # Robot configuration
         self.robotConfiguration = {
@@ -90,9 +90,23 @@ class ScaraOne:
             "defaultMotorOnTimeMillis": defaultMotorOnTimeMillis
         }
 
+        # Merge passed in robotConfig if there is one
+        if not (robotConfig is None):
+            self.mergeDictKeys2Level(self.robotConfiguration, robotConfig)
+            
         # Create the ScaraRobotManager - which does movement calculations
         self.scaraRobotManager = ScaraRobotManager(self.robotConfiguration, self)
 
+    # Merge keys
+    def mergeDictKeys2Level(self, dict1, dict2):
+        for key in dict2.keys():
+            if not (key in dict1):
+                dict1[key] = dict2[key]
+            elif type(dict1[key]) is dict:
+                dict1[key].update(dict2[key])
+            else:
+                dict1[key] = dict2[key]                
+    
     # Set the current position of the arms as the home position
     def setHomeAsCurrentPos(self):
         return self.scaraRobotManager.setHomeAsCurrentPos()

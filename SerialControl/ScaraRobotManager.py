@@ -156,7 +156,9 @@ class ScaraRobotManager:
             finalStepPos = 0
         # Calculate steps to get there
         requiredSteps = round(finalStepPos - self.curVerticalStepsFromZero)
+        print("Req steps", requiredSteps)
         # Step in the required direction
+        print("Int req", int(abs(requiredSteps)))
         for i in range(int(abs(requiredSteps))):
             self.robotControl.stepVertical(requiredSteps > 0)
         self.curVerticalStepsFromZero += requiredSteps

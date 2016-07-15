@@ -1,6 +1,6 @@
 from ScaraRobotManager import ScaraRobotManager
 
-class TestRobot:
+class TestScaraRobotManager:
 
     def __init__(self):
         # Adjest lower rotation angle to compensate for mismatched gears in my build
@@ -44,7 +44,7 @@ class TestRobot:
         self.scaraRobotManager.moveTo(x, y)
 
 
-testRobot = TestRobot()
+testRobot = TestScaraRobotManager()
 testRobot.moveTo(100,100)
 testRobot.moveTo(0,200)
 testRobot.moveTo(0,100)

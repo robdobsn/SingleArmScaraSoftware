@@ -37,8 +37,8 @@ class ScaraOne:
         # Pulse width and time between pulses for the stepper motors
         # Setting betweenPulsesUsecs to 300 is medium speed
         # Set betweenPulsesUsecs to a lower number to increase speed of arm movement
-        self.pulseWidthUsecs = 5
-        self.betweenPulsesUsecs = 300
+        self.pulseWidthUsecs = 10
+        self.betweenPulsesUsecs = [3000,3000,750]
 
         # Upper arm degrees per step calculation
         # Stepper motors move 1.8 degrees per full step
@@ -64,7 +64,7 @@ class ScaraOne:
         # The result of this is that a 90 degree rotation of the upper arm
         # results in a ((90 * 62/60) - 90) = 1/30 degree turn of the lower arm
         # So we need to correct lower angle by 1/30th of upper angle
-        shoulderGearMismatchFactor = 1 / 30
+        shoulderGearMismatchFactor = 0
 
         # Leave motor drivers on for this amount of time after last move
         defaultMotorOnTimeMillis = 1000
@@ -132,7 +132,7 @@ class ScaraOne:
         self.upperArmStep.value(1)
         self.hardwareLibrary.udelay(self.pulseWidthUsecs)
         self.upperArmStep.value(0)
-        self.hardwareLibrary.udelay(self.betweenPulsesUsecs)
+        self.hardwareLibrary.udelay(self.betweenPulsesUsecs[0])
 
     # Perform a single step of the lower arm
     def stepLowerArm(self, dirn):
@@ -140,7 +140,7 @@ class ScaraOne:
         self.lowerArmStep.value(1)
         self.hardwareLibrary.udelay(self.pulseWidthUsecs)
         self.lowerArmStep.value(0)
-        self.hardwareLibrary.udelay(self.betweenPulsesUsecs)
+        self.hardwareLibrary.udelay(self.betweenPulsesUsecs[1])
 
     # Perform a single step of the vertical motor
     def stepVertical(self, dirn):
@@ -148,7 +148,7 @@ class ScaraOne:
         self.verticalStep.value(1)
         self.hardwareLibrary.udelay(self.pulseWidthUsecs)
         self.verticalStep.value(0)
-        self.hardwareLibrary.udelay(self.betweenPulsesUsecs)
+        self.hardwareLibrary.udelay(self.betweenPulsesUsecs[2])
 
     def enableMotorDrive(self, turnMotorsOn, timeLimitForDriveMillis):
         # Check if we are turning the motors off

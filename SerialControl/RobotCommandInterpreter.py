@@ -30,8 +30,8 @@ class RobotCommandInterpreter:
         self.boundingBoxMaxXValue = L1 + L2
         self.boundingBoxMinYValue = -L2
         self.boundingBoxMaxYValue = L1 + L2
-        self.boundingBoxMinZValue = 0
-        self.boundingBoxMaxZValue = ZMax
+        self.boundingBoxMinZValue = -(ZMax / 4)
+        self.boundingBoxMaxZValue = 3 * ZMax / 4
         self.motorOnTimeMillis = robotConfig["defaultMotorOnTimeMillis"]
 
         # Build up a command string from characters passed in
@@ -41,9 +41,10 @@ class RobotCommandInterpreter:
         # Linefeed (\n or 0x0a) is used to signify end of command
         if ch == 0x0a:
             print("Command is:", self.serialCommandStr)
-            self.interpCommand(self.serialCommandStr)
+            retStr = "[CMD" + self.serialCommandStr + "]"
+            rslt = self.interpCommand(self.serialCommandStr)
             self.serialCommandStr = ""
-            return ""
+            return retStr + "<" + str(rslt) + ">\r\n"
 
         # Ignore CR
         if ch == 0x0d:
@@ -74,12 +75,14 @@ class RobotCommandInterpreter:
             y, yValidity = self.extractNum(splitStr, 2, self.boundingBoxMinYValue, self.boundingBoxMaxYValue)
             if xValidity and yValidity:
                 statusStr = "Go " + str(x) + ', ' + str(y)
-                print(statusStr)
+                # print(statusStr)
                 self.display.showStatus(statusStr)
                 self.robot.enableMotorDrive(True, self.motorOnTimeMillis)
-                self.robot.moveTo(x,y)
+                rslt = self.robot.moveTo(x,y)
+                return 0 if rslt else -2
             else:
                 print("Move to cmd ", cmdStr, " failed")
+                return -1
 
         # V0 command - go to Z
         elif splitStr[0] == 'V0':
@@ -87,12 +90,14 @@ class RobotCommandInterpreter:
             z, zValidity = self.extractNum(splitStr, 1, self.boundingBoxMinZValue, self.boundingBoxMaxZValue)
             if zValidity:
                 statusStr = "Vertical " + str(z)
-                print(statusStr)
+                # print(statusStr)
                 self.display.showStatus(statusStr)
                 self.robot.enableMotorDrive(True, self.motorOnTimeMillis)
-                self.robot.moveVertical(z)
+                rslt = self.robot.moveVertical(z)
+                return 0 if rslt else -2
             else:
                 print("MoveVertical ", cmdStr, " failed")
+                return -1
 
         # S0 & S1 commands - move an arm a given number of steps
         elif splitStr[0] == 'S0' or splitStr[0] == 'S1':
@@ -100,16 +105,18 @@ class RobotCommandInterpreter:
             if stepsValidity:
                 self.robot.enableMotorDrive(True, self.motorOnTimeMillis)
                 if splitStr[0] == 'S1':
-                    for i in range(abs(steps)):
-                        self.robot.stepLower(steps > 0)
+                    for i in range(int(abs(steps))):
+                        self.robot.stepLowerArm(steps > 0)
                 else:
-                    for i in range(abs(steps)):
-                        self.robot.stepUpper(steps < 0)
+                    for i in range(int(abs(steps))):
+                        self.robot.stepUpperArm(steps < 0)
                 statusStr = "Step " + "lower" if splitStr[0] == 0 else "upper" + str(steps)
                 print(statusStr)
                 self.display.showStatus(statusStr)
+                return 0
             else:
                 print("Step cmd", cmdStr, "failed")
+                return -1
 
         # C0 command - set the current position to be the home position (calibrate)
         elif splitStr[0] == 'C0':
@@ -117,6 +124,7 @@ class RobotCommandInterpreter:
             statusStr = "Calibrated"
             self.display.showStatus(statusStr)
             print(statusStr)
+            return 0
 
         # P0 & P1 - pen up and pen down0
         elif splitStr[0] == 'P0' or splitStr[0] == 'P1':
@@ -125,12 +133,13 @@ class RobotCommandInterpreter:
             statusStr = "Pen Down" if isPenDown else "Pen Up"
             self.display.showStatus(statusStr)
             print(statusStr)
+            return 0
 
         # E0 & E1 - Disable and Enable motor drive
         elif splitStr[0] == 'E0' or splitStr[0] == 'E1':
             if splitStr[0] == 'E1':
                 statusStr = "Enable Motors"
-                timeLimit, timeLimitVaidity = self.extractNum(splitStr, 1, 0, 1000000000)
+                timeLimit, timeLimitVaidity = self.extractNum(splitStr, 1, 0, 100000)
                 if not timeLimitVaidity:
                     timeLimit = self.motorOnTimeMillis
                 self.robot.enableMotorDrive(True, timeLimit)
@@ -139,22 +148,26 @@ class RobotCommandInterpreter:
                 self.robot.enableMotorDrive(False, 0)
             self.display.showStatus(statusStr)
             print(statusStr)
+            return 0
 
         # D0 - Set default motor on time
         elif splitStr[0] == 'D0':
             statusStr = "Motor on Time"
-            timeLimit, timeLimitVaidity = self.extractNum(splitStr, 1, 0, 1000000000)
+            timeLimit, timeLimitVaidity = self.extractNum(splitStr, 1, 0, 100000)
             if not timeLimitVaidity:
-                return
+                return -4
             self.motorOnTimeMillis = timeLimit
             self.showStatus(statusStr)
             print(statusStr)
+            return 0
 
         # Unknown command
         else:
             statusStr = "Unknown " + cmdStr
             self.showStatus(statusStr)
             print(statusStr)
+            return -3
+        return -3
 
     # Extract a floating point number from a string ensuring no exceptions are thrown
     def extractNum(self, inStrList, listIdx, minVal, maxVal):
